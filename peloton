@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peloton Death Spiral Widget</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f6f7fb;
+      color: #1f2937;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 24px auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    h2 { margin-top: 0; font-size: 20px; }
+    .subtitle { color: #6b7280; margin-top: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .metric {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px;
+      background: #fafafa;
+    }
+    .metric .label { font-size: 13px; color: #6b7280; }
+    .metric .value { font-size: 24px; font-weight: 700; margin-top: 6px; }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+    label { font-weight: 700; display: block; margin-bottom: 6px; }
+    input[type="range"] { width: 100%; }
+    .small { color: #6b7280; font-size: 13px; }
+    .result {
+      font-size: 30px;
+      font-weight: 800;
+      margin: 10px 0;
+    }
+    .safe { color: #047857; }
+    .warn { color: #b45309; }
+    .danger { color: #b91c1c; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 10px;
+      text-align: right;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    .barbox {
+      height: 18px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #2563eb, #ef4444);
+    }
+    .note {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.45;
+    }
+    @media (max-width: 760px) {
+      .grid, .controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Is Peloton About to Spiral?</h1>
+      <p class="subtitle">A simple death spiral model using Peloton's latest public subscriber and margin data.</p>
+      <div class="grid">
+        <div class="metric"><div class="label">Connected Fitness Subs</div><div class="value">2.662M</div></div>
+        <div class="metric"><div class="label">Monthly Churn</div><div class="value">1.2%</div></div>
+        <div class="metric"><div class="label">Subscription Margin</div><div class="value">71.1%</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Test the Spiral</h2>
+      <div class="controls">
+        <div>
+          <label>Monthly churn rate: <span id="churnText">1.2%</span></label>
+          <input id="churn" type="range" min="0.8" max="5.0" step="0.1" value="1.2" />
+          <p class="small">Higher churn means more users leave each month.</p>
+        </div>
+        <div>
+          <label>Monthly new subscribers: <span id="addsText">32,000</span></label>
+          <input id="adds" type="range" min="0" max="90000" step="1000" value="32000" />
+          <p class="small">New subscribers partly offset churn.</p>
+        </div>
+      </div>
+      <div class="barbox"><div id="riskBar" class="bar"></div></div>
+      <div id="result" class="result safe">Not a death spiral yet</div>
+      <p id="explain" class="note"></p>
+    </div>
+
+    <div class="card">
+      <h2>12-Month Projection</h2>
+      <table>
+        <thead>
+          <tr><th>Month</th><th>Subscribers</th><th>Lost to churn</th><th>New adds</th><th>Net change</th></tr>
+        </thead>
+        <tbody id="projection"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Assumptions and Conclusion</h2>
+      <p class="note">
+        This model starts with 2.662 million Connected Fitness subscriptions. It uses churn as a monthly loss rate and assumes a constant number of new monthly subscribers. It is a simplified model, so it does not include seasonality, price changes, hardware sales, product launches, or future management actions.
+      </p>
+      <p class="note">
+        Conclusion: Peloton is under subscriber pressure, but the latest data does not show a classic death spiral yet. Churn is low, subscription gross margin is high, and the company recently reported positive net income and strong free cash flow. The risk becomes serious only if churn rises and new subscriber additions fall at the same time.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const startSubs = 2662000;
+    const churnInput = document.getElementById('churn');
+    const addsInput = document.getElementById('adds');
+    const churnText = document.getElementById('churnText');
+    const addsText = document.getElementById('addsText');
+    const projection = document.getElementById('projection');
+    const result = document.getElementById('result');
+    const explain = document.getElementById('explain');
+    const riskBar = document.getElementById('riskBar');
+
+    function fmt(n) { return Math.round(n).toLocaleString(); }
+
+    function update() {
+      const churnRate = Number(churnInput.value) / 100;
+      const adds = Number(addsInput.value);
+      churnText.textContent = Number(churnInput.value).toFixed(1) + '%';
+      addsText.textContent = fmt(adds);
+
+      let subs = startSubs;
+      projection.innerHTML = '';
+      let endingSubs = subs;
+      for (let m = 1; m <= 12; m++) {
+        const lost = subs * churnRate;
+        const net = adds - lost;
+        subs = subs + net;
+        endingSubs = subs;
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${m}</td><td>${fmt(subs)}</td><td>${fmt(lost)}</td><td>${fmt(adds)}</td><td>${fmt(net)}</td>`;
+        projection.appendChild(row);
+      }
+
+      const annualChange = (endingSubs - startSubs) / startSubs;
+      const riskScore = Math.min(100, Math.max(0, -annualChange * 250));
+      riskBar.style.width = riskScore + '%';
+
+      result.className = 'result';
+      if (annualChange > -0.03) {
+        result.textContent = 'Not a death spiral yet';
+        result.classList.add('safe');
+      } else if (annualChange > -0.12) {
+        result.textContent = 'Warning: subscriber pressure';
+        result.classList.add('warn');
+      } else {
+        result.textContent = 'High risk of death spiral';
+        result.classList.add('danger');
+      }
+
+      explain.textContent = `After 12 months, projected subscriptions are ${fmt(endingSubs)}, a ${(annualChange * 100).toFixed(1)}% change from today. A death spiral would mean fewer subscribers, higher cost per subscriber, weaker value, and then even more cancellations.`;
+    }
+
+    churnInput.addEventListener('input', update);
+    addsInput.addEventListener('input', update);
+    update();
+  </script>
+</body>
+</html>
